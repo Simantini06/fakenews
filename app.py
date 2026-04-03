@@ -16,12 +16,18 @@ import os
 import re
 import pickle
 import numpy as np
+import anthropic
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+app = Flask(__name__)
+CORS(app)
+client = anthropic.Anthropic(
+    api_key="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"
+)
 
 nltk.download('stopwords', quiet=True)
 nltk.download('wordnet',   quiet=True)
