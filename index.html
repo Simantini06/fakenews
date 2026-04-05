@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerifyAI — Fake News Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+         :root {
+            --ink: #0d0d0d;
+            --paper: #f5f0e8;
+            --accent: #c0392b;
+            --green: #1a6b3c;
+            --mono: 'IBM Plex Mono', monospace;
+            --serif: 'Playfair Display', Georgia, serif;
+            --sans: 'IBM Plex Sans', sans-serif;
+            --pad: clamp(1rem, 4vw, 3rem);
+        }
+        
+        body {
+            background: var(--paper);
+            color: var(--ink);
+            font-family: var(--sans);
+            min-height: 100vh;
+        }
+        /* ── Masthead ─────────────────────────────────────── */
+        
+        .masthead {
+            border-bottom: 3px solid var(--ink);
+            padding: 1.2rem var(--pad);
+            display: flex;
+            align-items: baseline;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .masthead-logo {
+            font-family: var(--serif);
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        
+        .masthead-logo span {
+            color: var(--accent);
+        }
+        
+        .masthead-tagline {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.55;
+            padding-top: 0.3rem;
+        }
+        
+        .masthead-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            flex-shrink: 0;
+        }
+        
+        .dot.live {
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+        
+        .dot.error {
+            background: var(--accent);
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1
+            }
+            50% {
+                opacity: 0.4
+            }
+        }
+        /* ── Date bar ─────────────────────────────────────── */
+        
+        .datebar {
+            border-bottom: 1px solid var(--ink);
+            padding: 0.45rem var(--pad);
+            display: flex;
+            gap: 2rem;
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            flex-wrap: wrap;
+        }
+        /* ── Layout ───────────────────────────────────────── */
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: calc(100vh - 120px);
+        }
+        
+        @media(max-width:800px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                border-left: none;
+                border-top: 2px solid var(--ink);
+            }
+        }
+        /* ── Main column ──────────────────────────────────── */
+        
+        .main {
+            padding: var(--pad);
+            border-right: 2px solid var(--ink);
+        }
+        
+        .section-label {
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.5;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        
+        .section-label::after {
+            content: '';
+            display: block;
+            height: 1px;
+            background: currentColor;
+            flex: 1;
+            opacity: 0.3;
+        }
+        
+        .headline {
+            font-family: var(--serif);
+            font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+            max-width: 620px;
+        }
+        /* ── Tabs ─────────────────────────────────────────── */
+        
+        .tabs {
+            display: flex;
+            border: 2px solid var(--ink);
+            width: fit-content;
+            margin-bottom: 1.5rem;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .tab {
+            padding: 0.5rem 1.2rem;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: var(--ink);
+            transition: background 0.15s, color 0.15s;
+            border-right: 2px solid var(--ink);
+        }
+        
+        .tab:last-child {
+            border-right: none;
+        }
+        
+        .tab.active {
+            background: var(--ink);
+            color: var(--paper);
+        }
+        
+        .tab:hover:not(.active) {
+            background: rgba(13, 13, 13, 0.08);
+        }
+        /* ── Input panels ─────────────────────────────────── */
+        
+        .panel {
+            display: none;
+        }
+        
+        .panel.active {
+            display: block;
+        }
+        
+        textarea,
+        input[type=text] {
+            width: 100%;
+            padding: 1rem;
+            font-family: var(--mono);
+            font-size: 0.875rem;
+            line-height: 1.65;
+            border: 2px solid var(--ink);
+            border-radius: 2px;
+            background: #fffdf8;
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        
+        textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+        
+        textarea:focus,
+        input[type=text]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
+        }
+        
+        textarea::placeholder,
+        input::placeholder {
+            opacity: 0.4;
+        }
+        
+        .url-hint {
+            margin-top: 0.5rem;
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            opacity: 0.5;
+        }
+        /* ── Analyse button ───────────────────────────────── */
+        
+        .btn-analyse {
+            margin-top: 1.2rem;
+            padding: 0.85rem 2.5rem;
+            background: var(--ink);
+            color: var(--paper);
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            border: 2px solid var(--ink);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        
+        .btn-analyse:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .btn-analyse:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-analyse:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(245, 240, 232, 0.4);
+            border-top-color: var(--paper);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        
+        .btn-analyse.loading .spinner {
+            display: block;
+        }
+        
+        .btn-analyse.loading .btn-text {
+            opacity: 0.7;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* ── Error ────────────────────────────────────────── */
+        
+        .error-box {
+            margin-top: 1.2rem;
+            padding: 1rem 1.2rem;
+            border: 2px solid var(--accent);
+            border-radius: 2px;
+            background: #fdf0f0;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--accent);
+            display: none;
+        }
+        
+        .error-box.visible {
+            display: block;
+        }
+        /* ── Results ──────────────────────────────────────── */
+        
+        #result-section {
+            margin-top: 2.5rem;
+            display: none;
+            animation: fadeUp 0.35s ease;
+        }
+        
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .verdict-banner {
+            border: 3px solid var(--ink);
+            border-radius: 2px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .verdict-banner::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+        }
+        
+        .verdict-banner.fake {
+            background: #fdf0f0;
+        }
+        
+        .verdict-banner.fake::before {
+            background: var(--accent);
+        }
+        
+        .verdict-banner.real {
+            background: #f0fdf5;
+        }
+        
+        .verdict-banner.real::before {
+            background: var(--green);
+        }
+        
+        .verdict-label {
+            font-family: var(--serif);
+            font-size: clamp(2.5rem, 7vw, 4rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        
+        .verdict-banner.fake .verdict-label {
+            color: var(--accent);
+        }
+        
+        .verdict-banner.real .verdict-label {
+            color: var(--green);
+        }
+        
+        .verdict-meta {
+            flex: 1;
+            min-width: 160px;
+        }
+        
+        .confidence-track {
+            height: 6px;
+            background: rgba(13, 13, 13, 0.12);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        
+        .verdict-banner.fake .confidence-fill {
+            background: var(--accent);
+        }
+        
+        .verdict-banner.real .confidence-fill {
+            background: var(--green);
+        }
+        
+        .confidence-text {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.65;
+        }
+        
+        .probs {
+            margin-top: 1.2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+        
+        .prob-card {
+            border: 1.5px solid var(--ink);
+            border-radius: 2px;
+            padding: 0.9rem 1.1rem;
+        }
+        
+        .prob-card-label {
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.5;
+            margin-bottom: 0.3rem;
+        }
+        
+        .prob-card-value {
+            font-family: var(--serif);
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .prob-card.fake-card .prob-card-value {
+            color: var(--accent);
+        }
+        
+        .prob-card.real-card .prob-card-value {
+            color: var(--green);
+        }
+        
+        .result-meta {
+            margin-top: 1rem;
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+        /* ── Sidebar ──────────────────────────────────────── */
+        
+        .sidebar {
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .sidebar-block h3 {
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(13, 13, 13, 0.15);
+        }
+        
+        .model-card {
+            border: 1.5px solid var(--ink);
+            border-radius: 2px;
+            padding: 1rem;
+        }
+        
+        .model-card-name {
+            font-family: var(--serif);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        
+        .model-card-acc {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            opacity: 0.6;
+            letter-spacing: 0.06em;
+        }
+        
+        .model-tier-badge {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.2rem 0.6rem;
+            background: var(--ink);
+            color: var(--paper);
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+        
+        .tip {
+            display: flex;
+            gap: 0.7rem;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            margin-bottom: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .tip-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 0.05rem;
+        }
+        
+        .history-item {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(13, 13, 13, 0.1);
+            cursor: pointer;
+            transition: opacity 0.1s;
+        }
+        
+        .history-item:hover {
+            opacity: 0.7;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-item-label {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.2rem;
+        }
+        
+        .history-item-label.fake {
+            color: var(--accent);
+        }
+        
+        .history-item-label.real {
+            color: var(--green);
+        }
+        
+        .history-item-text {
+            font-size: 0.78rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .empty-history {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            opacity: 0.35;
+            text-align: center;
+            padding: 1rem 0;
+        }
+        /* ── Footer ───────────────────────────────────────── */
+        
+        footer {
+            border-top: 2px solid var(--ink);
+            padding: 1rem var(--pad);
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="masthead">
+        <div class="masthead-logo">Verify<span>AI</span></div>
+        <div class="masthead-tagline">Automated Fake News Detection · Powered by Machine Learning</div>
+        <div class="masthead-status">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-text">Connecting…</span>
+        </div>
+    </header>
+
+    <div class="datebar">
+        <span id="current-date"></span>
+        <span>API: localhost:5000</span>
+        <span id="model-label">Model: loading…</span>
+    </div>
+
+    <div class="layout">
+
+        <main class="main">
+            <div class="section-label">Analysis Input</div>
+            <h1 class="headline">Is this news real<br>or fabricated?</h1>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="text">Text / Headline</button>
+                <button class="tab" data-tab="url">Article URL</button>
+            </div>
+
+            <div class="panel active" id="panel-text">
+                <textarea id="news-text" placeholder="Paste a news headline, article excerpt, or social media post here…&#10;&#10;Example: &quot;Scientists confirm drinking bleach cures all diseases&quot;"></textarea>
+            </div>
+
+            <div class="panel" id="panel-url">
+                <input type="text" id="news-url" placeholder="https://www.example.com/news-article">
+                <div class="url-hint">The article text will be extracted automatically via newspaper3k</div>
+            </div>
+
+            <button class="btn-analyse" id="btn-analyse">
+      <div class="spinner"></div>
+      <span class="btn-text">Analyse</span>
+    </button>
+
+            <div class="error-box" id="error-box"></div>
+
+            <div id="result-section">
+                <div class="section-label" style="margin-top:2rem">Verdict</div>
+
+                <div class="verdict-banner" id="verdict-banner">
+                    <div class="verdict-label" id="verdict-label">—</div>
+                    <div class="verdict-meta">
+                        <div class="confidence-track">
+                            <div class="confidence-fill" id="confidence-fill" style="width:0%"></div>
+                        </div>
+                        <div class="confidence-text" id="confidence-text">Confidence: —</div>
+                    </div>
+                </div>
+
+                <div class="probs">
+                    <div class="prob-card fake-card">
+                        <div class="prob-card-label">Fake probability</div>
+                        <div class="prob-card-value" id="fake-prob">—</div>
+                    </div>
+                    <div class="prob-card real-card">
+                        <div class="prob-card-label">Real probability</div>
+                        <div class="prob-card-value" id="real-prob">—</div>
+                    </div>
+                </div>
+
+                <div class="result-meta" id="result-meta"></div>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+
+            <div class="sidebar-block">
+                <h3>Active Model</h3>
+                <div class="model-card">
+                    <div class="model-card-name" id="mc-name">Loading…</div>
+                    <div class="model-card-acc" id="mc-acc">Accuracy: —</div>
+                    <span class="model-tier-badge">TF-IDF · Logistic Regression</span>
+                </div>
+            </div>
+
+            <div class="sidebar-block">
+                <h3>How to get best results</h3>
+                <div class="tip"><span class="tip-icon">✦</span><span>Paste the <strong>full headline</strong> — not just keywords.</span></div>
+                <div class="tip"><span class="tip-icon">✦</span><span>For URLs, use direct article links — not homepages.</span></div>
+                <div class="tip"><span class="tip-icon">✦</span><span>Satire and opinion pieces may return uncertain results.</span></div>
+                <div class="tip"><span class="tip-icon">✦</span><span>Paywalled sites cannot be fetched — paste text instead.</span></div>
+            </div>
+
+            <div class="sidebar-block">
+                <h3>Recent Checks</h3>
+                <div id="history-list">
+                    <div class="empty-history">No checks yet</div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <footer>
+        <span>VerifyAI v1.0</span>
+        <span>TF-IDF + Logistic Regression</span>
+        <span>Dataset: Fake vs Real News</span>
+    </footer>
+
+    <script>
+        const API = "http://localhost:5000";
+
+        const statusDot = document.getElementById("status-dot");
+        const statusText = document.getElementById("status-text");
+        const modelLabel = document.getElementById("model-label");
+        const btnAnalyse = document.getElementById("btn-analyse");
+        const newsText = document.getElementById("news-text");
+        const newsUrl = document.getElementById("news-url");
+        const resultSec = document.getElementById("result-section");
+        const verdictBanner = document.getElementById("verdict-banner");
+        const verdictLabel = document.getElementById("verdict-label");
+        const confFill = document.getElementById("confidence-fill");
+        const confText = document.getElementById("confidence-text");
+        const fakeProb = document.getElementById("fake-prob");
+        const realProb = document.getElementById("real-prob");
+        const resultMeta = document.getElementById("result-meta");
+        const errorBox = document.getElementById("error-box");
+        const historyList = document.getElementById("history-list");
+        const mcName = document.getElementById("mc-name");
+        const mcAcc = document.getElementById("mc-acc");
+
+        let activeTab = "text";
+        let history = [];
+
+        document.getElementById("current-date").textContent = new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+
+        async function pingAPI() {
+            try {
+                const r = await fetch(`${API}/model-info`);
+                if (!r.ok) throw new Error();
+                const d = await r.json();
+                statusDot.classList.add("live");
+                statusText.textContent = "API online";
+                const acc = d.accuracy ? (d.accuracy * 100).toFixed(1) + "%" : "—";
+                modelLabel.textContent = `Model: TF-IDF · Acc: ${acc}`;
+                mcName.textContent = "TF-IDF + Logistic Regression";
+                mcAcc.textContent = `Accuracy: ${acc}`;
+            } catch {
+                statusDot.classList.add("error");
+                statusText.textContent = "API offline";
+                modelLabel.textContent = "Model: unavailable";
+                mcName.textContent = "Not running";
+                mcAcc.textContent = "Start: python app.py";
+            }
+        }
+        pingAPI();
+
+        document.querySelectorAll(".tab").forEach(tab => {
+            tab.addEventListener("click", () => {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+                tab.classList.add("active");
+                activeTab = tab.dataset.tab;
+                document.getElementById("panel-" + activeTab).classList.add("active");
+                hideResult();
+                hideError();
+            });
+        });
+
+        btnAnalyse.addEventListener("click", analyse);
+        newsText.addEventListener("keydown", e => {
+            if (e.ctrlKey && e.key === "Enter") analyse();
+        });
+
+        async function analyse() {
+            hideResult();
+            hideError();
+            setLoading(true);
+            try {
+                let body = {};
+                if (activeTab === "text") {
+                    const t = newsText.value.trim();
+                    if (t.length < 10) throw new Error("Please enter at least one full headline or sentence.");
+                    body = {
+                        text: t
+                    };
+                } else {
+                    const u = newsUrl.value.trim();
+                    if (!u.startsWith("http")) throw new Error("Please enter a valid URL starting with https://");
+                    body = {
+                        url: u
+                    };
+                }
+                const r = await fetch(`${API}/predict`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(body),
+                });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error || `Server error ${r.status}`);
+                showResult(d, body);
+                addHistory(d, body);
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function showResult(d, body) {
+            const isFake = d.label === "FAKE";
+            const pct = Math.round(d.confidence * 100);
+            verdictBanner.className = "verdict-banner " + (isFake ? "fake" : "real");
+            verdictLabel.textContent = isFake ? "FAKE" : "REAL";
+            confFill.style.width = pct + "%";
+            confText.textContent = `Confidence: ${pct}%`;
+            fakeProb.textContent = Math.round(d.fake_prob * 100) + "%";
+            realProb.textContent = Math.round(d.real_prob * 100) + "%";
+            const src = d.source === "url" ? `URL · ${d.char_count} chars` : `${d.char_count} chars`;
+            resultMeta.textContent = `Model: TF-IDF   ·   Source: ${src}   ·   ${d.elapsed_ms}ms`;
+            resultSec.style.display = "block";
+            resultSec.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest"
+            });
+        }
+
+        function addHistory(d, body) {
+            const snippet = body.url ?
+                body.url.replace(/https?:\/\//, "").slice(0, 60) :
+                (body.text || "").slice(0, 60);
+            history.unshift({
+                label: d.label,
+                conf: Math.round(d.confidence * 100),
+                text: snippet,
+                time: new Date().toLocaleTimeString()
+            });
+            if (history.length > 8) history.pop();
+            historyList.innerHTML = history.map(h => `
+    <div class="history-item">
+      <div class="history-item-label ${h.label.toLowerCase()}">${h.label} · ${h.conf}% · ${h.time}</div>
+      <div class="history-item-text">${esc(h.text)}</div>
+    </div>`).join("");
+        }
+
+        function setLoading(on) {
+            btnAnalyse.disabled = on;
+            btnAnalyse.classList.toggle("loading", on);
+            btnAnalyse.querySelector(".btn-text").textContent = on ? "Analysing…" : "Analyse";
+        }
+
+        function showError(msg) {
+            errorBox.textContent = "⚠ " + msg;
+            errorBox.classList.add("visible");
+        }
+
+        function hideError() {
+            errorBox.classList.remove("visible");
+        }
+
+        function hideResult() {
+            resultSec.style.display = "none";
+        }
+
+        function esc(s) {
+            return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+
+</html>
