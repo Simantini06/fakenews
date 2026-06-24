@@ -1,1 +1,6 @@
-I am Simantini
+Background & motivation, fake news definition & taxonomy, societal impact, limitations of manual fact-checking, need for automation, project scope, report organisation
+3. Literature Survey — Rule-based approaches, classical ML (TF-IDF/SVM), ensemble methods, RNNs/LSTMs, CNNs, Transformers (BERT), knowledge-based methods, dataset comparison (LIAR, FakeNewsNet, ISOT, WELFake), research gaps addressed
+4. Problem Statement — Formal definition, input/output constraints, linguistic & web extraction challenges, model limitations, success criteria
+5. Proposed Solution — System architecture, WELFake preprocessing, TF-IDF configuration, Logistic Regression rationale & hyperparameters, 3-tier extraction cascade (trafilatura → newspaper3k → BeautifulSoup), Flask API endpoints & error handling, front-end design & features
+6. Experimental Setup and Analysis — Hardware/software stack, dataset statistics, training procedure, evaluation metrics, classification report, inference latency, ablation study, baseline comparison, case studies (TP, TN, ambiguous)
+7. Conclusion and Future Scope — Achievements, conclusions, limitations, future: model upgrades (BERT), multi-modal, multilingual support, browser extension, explainability (LIME/SHAP)
